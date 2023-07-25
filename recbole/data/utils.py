@@ -19,6 +19,8 @@ import pickle
 import warnings
 from typing import Literal
 
+
+
 from recbole.data.dataloader import *
 from recbole.sampler import KGSampler, Sampler, RepeatableSampler
 from recbole.utils import ModelType, ensure_dir, get_local_time, set_color
@@ -59,6 +61,7 @@ def create_dataset(config):
     if os.path.exists(file):
         with open(file, "rb") as f:
             dataset = pickle.load(f)
+
         dataset_args_unchanged = True
         for arg in dataset_arguments + ["seed", "repeatable"]:
             if config[arg] != dataset.config[arg]:
@@ -67,6 +70,7 @@ def create_dataset(config):
         if dataset_args_unchanged:
             logger = getLogger()
             logger.info(set_color("Load filtered dataset from", "pink") + f": [{file}]")
+
             return dataset
 
     dataset = dataset_class(config)
@@ -157,6 +161,7 @@ def data_preparation(config, dataset):
             - valid_data (AbstractDataLoader): The dataloader for validation.
             - test_data (AbstractDataLoader): The dataloader for testing.
     """
+
     dataloaders = load_split_dataloaders(config)
     if dataloaders is not None:
         train_data, valid_data, test_data = dataloaders
@@ -175,6 +180,7 @@ def data_preparation(config, dataset):
                 config, train_dataset, train_sampler, shuffle=config["shuffle"]
             )
         else:
+
             kg_sampler = KGSampler(
                 dataset,
                 config["train_neg_sample_args"]["distribution"],
@@ -214,12 +220,12 @@ def data_preparation(config, dataset):
         + ": "
         + set_color(f'[{config["eval_args"]}]', "yellow")
     )
+
     return train_data, valid_data, test_data
 
 
 def get_dataloader(config, phase: Literal["train", "valid", "test", "evaluation"]):
     """Return a dataloader class according to :attr:`config` and :attr:`phase`.
-
     Args:
         config (Config): An instance object of Config, used to record parameter information.
         phase (str): The stage of dataloader. It can only take 4 values: 'train', 'valid', 'test' or 'evaluation'.
@@ -249,6 +255,7 @@ def get_dataloader(config, phase: Literal["train", "valid", "test", "evaluation"
     }
 
     if config["model"] in register_table:
+
         return register_table[config["model"]](config, phase)
 
     model_type = config["MODEL_TYPE"]
@@ -260,6 +267,9 @@ def get_dataloader(config, phase: Literal["train", "valid", "test", "evaluation"
     else:
         eval_mode = config["eval_args"]["mode"][phase]
         if eval_mode == "full":
+            #Valid and Test
+            print(phase)
+
             return FullSortEvalDataLoader
         else:
             return NegSampleEvalDataLoader

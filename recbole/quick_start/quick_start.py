@@ -73,6 +73,7 @@ def run_recbole(
     # dataset splitting
     train_data, valid_data, test_data = data_preparation(config, dataset)
 
+    
     # model loading and initialization
     init_seed(config["seed"] + config["local_rank"], config["reproducibility"])
     model = get_model(config["model"])(config, train_data._dataset).to(config["device"])
@@ -87,8 +88,7 @@ def run_recbole(
 
     # model training
     best_valid_score, best_valid_result = trainer.fit(
-        train_data, valid_data, saved=saved, show_progress=config["show_progress"]
-    )
+        train_data, valid_data, saved=saved, show_progress=config["show_progress"])
 
     # model evaluation
     test_result = trainer.evaluate(

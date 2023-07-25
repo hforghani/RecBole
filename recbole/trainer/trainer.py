@@ -519,9 +519,12 @@ class Trainer(AbstractTrainer):
     def _full_sort_batch_eval(self, batched_data):
         interaction, history_index, positive_u, positive_i = batched_data
         try:
+            print('yes')
             # Note: interaction without item ids
             scores = self.model.full_sort_predict(interaction.to(self.device))
+            print(' ')
         except NotImplementedError:
+            print('no')
             inter_len = len(interaction)
             new_inter = interaction.to(self.device).repeat_interleave(self.tot_item_num)
             batch_size = len(new_inter)
@@ -530,6 +533,8 @@ class Trainer(AbstractTrainer):
                 scores = self.model.predict(new_inter)
             else:
                 scores = self._spilt_predict(new_inter, batch_size)
+
+
 
         scores = scores.view(-1, self.tot_item_num)
         scores[:, 0] = -np.inf
@@ -558,9 +563,9 @@ class Trainer(AbstractTrainer):
 
     @torch.no_grad()
     def evaluate(
-        self, eval_data, load_best_model=True, model_file=None, show_progress=False
-    ):
-        r"""Evaluate the model based on the eval data.
+        self, eval_data, load_best_model=True, model_file=None, show_progress=False):
+        r"""
+        Evaluate the model based on the eval data.
 
         Args:
             eval_data (DataLoader): the eval data
@@ -608,10 +613,14 @@ class Trainer(AbstractTrainer):
             else eval_data
         )
 
+        print(eval_data)
+
         num_sample = 0
         for batch_idx, batched_data in enumerate(iter_data):
             num_sample += len(batched_data)
             interaction, scores, positive_u, positive_i = eval_func(batched_data)
+
+
             if self.gpu_available and show_progress:
                 iter_data.set_postfix_str(
                     set_color("GPU RAM: " + get_gpu_usage(self.device), "yellow")

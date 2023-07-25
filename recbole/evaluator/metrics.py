@@ -23,7 +23,7 @@ set of user(u)-item(i) pairs, :math:`\hat r_{u i}` represents the score predicte
 """
 
 from logging import getLogger
-
+import torch
 import numpy as np
 from collections import Counter
 from sklearn.metrics import auc as sk_auc
@@ -173,7 +173,6 @@ class NDCG(TopkMetric):
 
     :math:`\delta(·)` is an indicator function.
     """
-
     def __init__(self, config):
         super().__init__(config)
 
@@ -192,12 +191,10 @@ class NDCG(TopkMetric):
         idcg = np.cumsum(1.0 / np.log2(iranks + 1), axis=1)
         for row, idx in enumerate(idcg_len):
             idcg[row, idx:] = idcg[row, idx - 1]
-
         ranks = np.zeros_like(pos_index, dtype=np.float)
         ranks[:, :] = np.arange(1, pos_index.shape[1] + 1)
         dcg = 1.0 / np.log2(ranks + 1)
         dcg = np.cumsum(np.where(pos_index, dcg, 0), axis=1)
-
         result = dcg / idcg
         return result
 
@@ -213,10 +210,8 @@ class Precision(TopkMetric):
 
     :math:`|\hat R(u)|` represents the item count of :math:`\hat R(u)`.
     """
-
     def __init__(self, config):
         super().__init__(config)
-
     def calculate_metric(self, dataobject):
         pos_index, _ = self.used_info(dataobject)
         result = self.metric_info(pos_index)
@@ -225,6 +220,11 @@ class Precision(TopkMetric):
 
     def metric_info(self, pos_index):
         return pos_index.cumsum(axis=1) / np.arange(1, pos_index.shape[1] + 1)
+
+
+
+
+
 
 
 # CTR Metrics

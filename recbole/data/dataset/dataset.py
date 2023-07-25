@@ -1590,12 +1590,89 @@ class Dataset(torch.utils.data.Dataset):
 
     def _grouped_index(self, group_by_list):
         index = {}
+
         for i, key in enumerate(group_by_list):
             if key not in index:
                 index[key] = [i]
             else:
                 index[key].append(i)
         return index.values()
+
+    def split_by_ratio(self, ratios, group_by=None):
+        """Split interaction records by ratios.
+
+        Args:
+            ratios (list): List of split ratios. No need to be normalized.
+            group_by (str, optional): Field name that interaction records should grouped by before splitting.
+                Defaults to ``None``
+
+        Returns:
+            list: List of :class:`~Dataset`, whose interaction features has been split.
+
+        Note:
+            Other than the first one, each part is rounded down.
+        """
+
+        self.logger.debug(f"split by ratios [{ratios}], group_by=[{group_by}]")
+        tot_ratio = sum(ratios)
+        ratios = [_ / tot_ratio for _ in ratios]
+        if group_by is None:
+            tot_cnt = self.__len__()
+            split_ids = self._calcu_split_ids(tot=tot_cnt, ratios=ratios)
+            next_index = [range(start, end) for start, end in zip([0] + split_ids, split_ids + [tot_cnt])]
+
+
+
+        elif True:
+            # elif group_by == 'amazon':
+            grouped_inter_feat_index = self._grouped_index(self.inter_feat[group_by].numpy())
+            out_indexes = [[] for _ in range(len(ratios))]
+            tot_cnt = len(grouped_inter_feat_index)
+            split_ids = self._calcu_split_ids(tot=tot_cnt, ratios=ratios)
+            grouped_inter_feat_index_list = list(grouped_inter_feat_index)
+
+            for index, start, end in zip(out_indexes, [0] + split_ids, split_ids + [tot_cnt]):
+                index.extend(grouped_inter_feat_index_list[start:end])
+
+            next_index = [[] for _ in range(len(ratios))]
+
+            i = 0
+            for index in out_indexes:
+                for group in index:
+                    next_index[i].extend(group)
+                i += 1
+            '''
+            #Test
+            test_data_user = next_index[1]
+            next_index_test = [[] for _ in range(len(ratios_test))]
+            for grouped_index in test_data_user:
+                tot_cnt_test = len(grouped_index)
+                split_ids_test = self._calcu_split_ids(tot=tot_cnt_test, ratios=ratios_test)
+                for index, start, end in zip(next_index_test, [0] + split_ids_test, split_ids_test + [tot_cnt_test]):
+                    index.extend(grouped_index[start:end])
+            #Validation
+            val_datat_user = next_index[2]
+            next_index_val = [[] for _ in range(len(ratios_val))]
+            for grouped_index in val_datat_user:
+                tot_cnt_val = len(grouped_index)
+                split_ids_val = self._calcu_split_ids(tot=tot_cnt_val, ratios=ratios_val)
+                for index, start, end in zip(next_index_val, [0] + split_ids_val, split_ids_val + [tot_cnt_val]):
+                    index.extend(grouped_index[start:end])
+            '''
+        else:
+            grouped_inter_feat_index = self._grouped_index(self.inter_feat[group_by].numpy())
+            next_index = [[] for _ in range(len(ratios))]
+            for grouped_index in grouped_inter_feat_index:
+                tot_cnt = len(grouped_index)
+                split_ids = self._calcu_split_ids(tot=tot_cnt, ratios=ratios)
+                for index, start, end in zip(next_index, [0] + split_ids, split_ids + [tot_cnt]):
+                    index.extend(grouped_index[start:end])
+        self._drop_unused_col()
+        next_df = [self.inter_feat[index] for index in next_index]
+        next_ds = [self.copy(_) for _ in next_df]
+        return next_ds
+
+
 
     def _calcu_split_ids(self, tot, ratios):
         """Given split ratios, and total number, calculate the number of each part after splitting.
@@ -1619,49 +1696,6 @@ class Dataset(torch.utils.data.Dataset):
                 cnt[0] -= 1
         split_ids = np.cumsum(cnt)[:-1]
         return list(split_ids)
-
-    def split_by_ratio(self, ratios, group_by=None):
-        """Split interaction records by ratios.
-
-        Args:
-            ratios (list): List of split ratios. No need to be normalized.
-            group_by (str, optional): Field name that interaction records should grouped by before splitting.
-                Defaults to ``None``
-
-        Returns:
-            list: List of :class:`~Dataset`, whose interaction features has been split.
-
-        Note:
-            Other than the first one, each part is rounded down.
-        """
-        self.logger.debug(f"split by ratios [{ratios}], group_by=[{group_by}]")
-        tot_ratio = sum(ratios)
-        ratios = [_ / tot_ratio for _ in ratios]
-
-        if group_by is None:
-            tot_cnt = self.__len__()
-            split_ids = self._calcu_split_ids(tot=tot_cnt, ratios=ratios)
-            next_index = [
-                range(start, end)
-                for start, end in zip([0] + split_ids, split_ids + [tot_cnt])
-            ]
-        else:
-            grouped_inter_feat_index = self._grouped_index(
-                self.inter_feat[group_by].numpy()
-            )
-            next_index = [[] for _ in range(len(ratios))]
-            for grouped_index in grouped_inter_feat_index:
-                tot_cnt = len(grouped_index)
-                split_ids = self._calcu_split_ids(tot=tot_cnt, ratios=ratios)
-                for index, start, end in zip(
-                    next_index, [0] + split_ids, split_ids + [tot_cnt]
-                ):
-                    index.extend(grouped_index[start:end])
-
-        self._drop_unused_col()
-        next_df = [self.inter_feat[index] for index in next_index]
-        next_ds = [self.copy(_) for _ in next_df]
-        return next_ds
 
     def _split_index_by_leave_one_out(self, grouped_index, leave_one_num):
         """Split indexes by strategy leave one out.

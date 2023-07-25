@@ -76,9 +76,14 @@ class TopkMetric(AbstractMetric):
         """
         metric_dict = {}
         avg_result = value.mean(axis=0)
+        #print('kkeeeeeeeeeeeeeeeee')
+        #print(value.shape)
+        #print(avg_result)
         for k in self.topk:
+            
             key = "{}@{}".format(metric, k)
             metric_dict[key] = round(avg_result[k - 1], self.decimal_place)
+        #print(metric_dict)
         return metric_dict
 
     def metric_info(self, pos_index, pos_len=None):

@@ -165,6 +165,7 @@ class Collector(object):
             pos_idx = torch.gather(pos_matrix, dim=1, index=topk_idx)
             result = torch.cat((pos_idx, pos_len_list), dim=1)
             self.data_struct.update_tensor("rec.topk", result)
+            print(' ')
 
         if self.register.need("rec.meanrank"):
             desc_scores, desc_index = torch.sort(scores_tensor, dim=-1, descending=True)
