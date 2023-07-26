@@ -66,7 +66,7 @@ class Config(object):
     """
 
     def __init__(
-        self, model=None, dataset=None, config_file_list=None, config_dict=None
+            self, model=None, dataset=None, config_file_list=None, config_dict=None
     ):
         """
         Args:
@@ -130,7 +130,7 @@ class Config(object):
             try:
                 value = eval(param)
                 if value is not None and not isinstance(
-                    value, (str, int, float, list, tuple, dict, bool, Enum)
+                        value, (str, int, float, list, tuple, dict, bool, Enum)
                 ):
                     value = param
             except (NameError, SyntaxError, TypeError):
@@ -154,6 +154,10 @@ class Config(object):
                     file_config_dict.update(
                         yaml.load(f.read(), Loader=self.yaml_loader)
                     )
+        for key, value in file_config_dict.items():
+            if value == 'None':
+                file_config_dict[key] = None
+        print(f'file_config_dict = {file_config_dict}')
         return file_config_dict
 
     def _load_variable_config_dict(self, config_dict):
@@ -173,8 +177,8 @@ class Config(object):
                     continue
                 cmd_arg_name, cmd_arg_value = arg[2:].split("=")
                 if (
-                    cmd_arg_name in cmd_config_dict
-                    and cmd_arg_value != cmd_config_dict[cmd_arg_name]
+                        cmd_arg_name in cmd_config_dict
+                        and cmd_arg_value != cmd_config_dict[cmd_arg_name]
                 ):
                     raise SyntaxError(
                         "There are duplicate commend arg '%s' with different value."
@@ -341,10 +345,15 @@ class Config(object):
             self.final_config_dict["MODEL_INPUT_TYPE"] = self.model_class.input_type
         elif "loss_type" in self.final_config_dict:
             if self.final_config_dict["loss_type"] in ["CE"]:
+                print(
+                    f'train_neg_sample_args is in self.final_config_dict? {"train_neg_sample_args" in self.final_config_dict}')
+                train_neg_sample_args = self.final_config_dict.get("train_neg_sample_args", None)
+                print(f'train_neg_sample_args = {train_neg_sample_args}')
+                print(f'type = {type(train_neg_sample_args)}')
                 if (
-                    self.final_config_dict["MODEL_TYPE"] == ModelType.SEQUENTIAL
-                    and self.final_config_dict.get("train_neg_sample_args", None)
-                    is not None
+                        self.final_config_dict["MODEL_TYPE"] == ModelType.SEQUENTIAL
+                        and self.final_config_dict.get("train_neg_sample_args", None)
+                        is not None
                 ):
                     raise ValueError(
                         f"train_neg_sample_args [{self.final_config_dict['train_neg_sample_args']}] should be None "
@@ -376,8 +385,8 @@ class Config(object):
         self.final_config_dict["eval_type"] = eval_type.pop()
 
         if (
-            self.final_config_dict["MODEL_TYPE"] == ModelType.SEQUENTIAL
-            and not self.final_config_dict["repeatable"]
+                self.final_config_dict["MODEL_TYPE"] == ModelType.SEQUENTIAL
+                and not self.final_config_dict["repeatable"]
         ):
             raise ValueError(
                 "Sequential models currently only support repeatable recommendation, "
@@ -417,8 +426,8 @@ class Config(object):
         }
 
         if (
-            self.final_config_dict.get("neg_sampling") is not None
-            or self.final_config_dict.get("training_neg_sample_num") is not None
+                self.final_config_dict.get("neg_sampling") is not None
+                or self.final_config_dict.get("training_neg_sample_num") is not None
         ):
             logger = getLogger()
             logger.warning(
@@ -466,8 +475,8 @@ class Config(object):
 
         self.final_config_dict["eval_args"] = default_eval_args
         if (
-            self.final_config_dict["eval_type"] == EvaluatorType.VALUE
-            and "full" in self.final_config_dict["eval_args"]["mode"].values()
+                self.final_config_dict["eval_type"] == EvaluatorType.VALUE
+                and "full" in self.final_config_dict["eval_args"]["mode"].values()
         ):
             raise NotImplementedError(
                 "Full sort evaluation do not match value-based metrics!"
@@ -497,12 +506,12 @@ class Config(object):
             torch.distributed.init_process_group(
                 backend="nccl",
                 rank=self.final_config_dict["local_rank"]
-                + self.final_config_dict["offset"],
+                     + self.final_config_dict["offset"],
                 world_size=self.final_config_dict["world_size"],
                 init_method="tcp://"
-                + self.final_config_dict["ip"]
-                + ":"
-                + str(self.final_config_dict["port"]),
+                            + self.final_config_dict["ip"]
+                            + ":"
+                            + str(self.final_config_dict["port"]),
             )
             self.final_config_dict["device"] = torch.device(
                 "cuda", self.final_config_dict["local_rank"]
@@ -595,7 +604,7 @@ class Config(object):
             args_info += "\n".join(
                 [
                     (
-                        set_color("{}", "cyan") + " =" + set_color(" {}", "yellow")
+                            set_color("{}", "cyan") + " =" + set_color(" {}", "yellow")
                     ).format(arg, value)
                     for arg, value in self.final_config_dict.items()
                     if arg in self.parameters[category]
@@ -611,9 +620,9 @@ class Config(object):
                 )
                 for arg, value in self.final_config_dict.items()
                 if arg
-                not in {_ for args in self.parameters.values() for _ in args}.union(
-                    {"model", "dataset", "config_files"}
-                )
+                   not in {_ for args in self.parameters.values() for _ in args}.union(
+                {"model", "dataset", "config_files"}
+            )
             ]
         )
         args_info += "\n\n"

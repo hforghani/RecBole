@@ -215,7 +215,7 @@ class Dataset(torch.utils.data.Dataset):
     def _get_download_url(self, url_file, allow_none=False):
         current_path = os.path.dirname(os.path.realpath(__file__))
         with open(
-            os.path.join(current_path, f"../../properties/dataset/{url_file}.yaml")
+                os.path.join(current_path, f"../../properties/dataset/{url_file}.yaml")
         ) as f:
             dataset2url = yaml.load(f.read(), Loader=self.config.yaml_loader)
 
@@ -408,8 +408,8 @@ class Dataset(torch.utils.data.Dataset):
             load_col = set(self.config["load_col"][source])
 
         if (
-            self.config["unload_col"] is not None
-            and source in self.config["unload_col"]
+                self.config["unload_col"] is not None
+                and source in self.config["unload_col"]
         ):
             unload_col = set(self.config["unload_col"][source])
         else:
@@ -668,8 +668,8 @@ class Dataset(torch.utils.data.Dataset):
             Only float-like fields can be normalized.
         """
         if (
-            self.config["normalize_field"] is not None
-            and self.config["normalize_all"] is True
+                self.config["normalize_field"] is not None
+                and self.config["normalize_all"] is True
         ):
             raise ValueError(
                 "Normalize_field and normalize_all can't be set at the same time."
@@ -940,7 +940,7 @@ class Dataset(torch.utils.data.Dataset):
             self.inter_feat.drop(dropped_index, inplace=True)
 
     def _get_illegal_ids_by_inter_num(
-        self, field, feat, inter_num, inter_interval=None
+            self, field, feat, inter_num, inter_interval=None
     ):
         """Given inter feat, return illegal ids, whose inter num out of [min_num, max_num]
 
@@ -997,9 +997,9 @@ class Dataset(torch.utils.data.Dataset):
             left_bracket, right_bracket = endpoint_pair_str[0], endpoint_pair_str[-1]
             endpoint_pair = endpoint_pair_str[1:-1].split(",")
             if not (
-                len(endpoint_pair) == 2
-                and left_bracket in ["(", "["]
-                and right_bracket in [")", "]"]
+                    len(endpoint_pair) == 2
+                    and left_bracket in ["(", "["]
+                    and right_bracket in [")", "]"]
             ):
                 self.logger.warning(f"{endpoint_pair_str} is an illegal interval!")
                 continue
@@ -1019,7 +1019,7 @@ class Dataset(torch.utils.data.Dataset):
         """
         result = True
         for i, (left_bracket, left_point, right_point, right_bracket) in enumerate(
-            intervals
+                intervals
         ):
             temp_result = num >= left_point if left_bracket == "[" else num > left_point
             temp_result &= (
@@ -1130,7 +1130,7 @@ class Dataset(torch.utils.data.Dataset):
         for field, value in threshold.items():
             if field in self.inter_feat:
                 self.inter_feat[self.label_field] = (
-                    self.inter_feat[field] >= value
+                        self.inter_feat[field] >= value
                 ).astype(int)
             else:
                 raise ValueError(f"Field [{field}] not in inter_feat.")
@@ -1238,8 +1238,8 @@ class Dataset(torch.utils.data.Dataset):
             raise ValueError(f"Field [{field}] not defined in dataset.")
 
         if (
-            self.field2type[field] in {FeatureType.FLOAT, FeatureType.FLOAT_SEQ}
-            and field in self.config["numerical_features"]
+                self.field2type[field] in {FeatureType.FLOAT, FeatureType.FLOAT_SEQ}
+                and field in self.config["numerical_features"]
         ):
             return self.field2bucketnum[field]
         elif self.field2type[field] not in {FeatureType.TOKEN, FeatureType.TOKEN_SEQ}:
@@ -1624,8 +1624,7 @@ class Dataset(torch.utils.data.Dataset):
 
 
 
-        elif True:
-            print('lklkllkkkkkoooo')
+        elif True:  # TODO
             # elif group_by == 'amazon':
             grouped_inter_feat_index = self._grouped_index(self.inter_feat[group_by].numpy())
             out_indexes = [[] for _ in range(len(ratios))]
@@ -1638,29 +1637,18 @@ class Dataset(torch.utils.data.Dataset):
 
             next_index = [[] for _ in range(len(ratios))]
 
-            i = 0
-            for index in out_indexes:
-                for group in index:
-                    next_index[i].extend(group)
-                i += 1
-            '''
-            #Test
-            test_data_user = next_index[1]
-            next_index_test = [[] for _ in range(len(ratios_test))]
-            for grouped_index in test_data_user:
-                tot_cnt_test = len(grouped_index)
-                split_ids_test = self._calcu_split_ids(tot=tot_cnt_test, ratios=ratios_test)
-                for index, start, end in zip(next_index_test, [0] + split_ids_test, split_ids_test + [tot_cnt_test]):
-                    index.extend(grouped_index[start:end])
-            #Validation
-            val_datat_user = next_index[2]
-            next_index_val = [[] for _ in range(len(ratios_val))]
-            for grouped_index in val_datat_user:
-                tot_cnt_val = len(grouped_index)
-                split_ids_val = self._calcu_split_ids(tot=tot_cnt_val, ratios=ratios_val)
-                for index, start, end in zip(next_index_val, [0] + split_ids_val, split_ids_val + [tot_cnt_val]):
-                    index.extend(grouped_index[start:end])
-            '''
+            for seq in out_indexes[0]:  # Training
+                next_index[0].extend(seq)
+
+            for i in [1, 2]:  # Validation & Test
+                for seq in out_indexes[i]:
+                    next_index[i].append(seq[int(0.9 * len(seq))])
+
+            # i = 0
+            # for index in out_indexes:
+            #     for group in index:
+            #         next_index[i].extend(group)
+            #     i += 1
         else:
             grouped_inter_feat_index = self._grouped_index(self.inter_feat[group_by].numpy())
             next_index = [[] for _ in range(len(ratios))]
@@ -1670,24 +1658,44 @@ class Dataset(torch.utils.data.Dataset):
                 for index, start, end in zip(next_index, [0] + split_ids, split_ids + [tot_cnt]):
                     index.extend(grouped_index[start:end])
         self._drop_unused_col()
-        self.out_indexes = out_indexes
-        valid_splits = [[], []]
-        test_splits = [[], []]
 
-        for user_list in self.out_indexes[2]:
-            valid_splits[0].extend(user_list[:int(0.9 * len(user_list))])
-            valid_splits[1].extend(user_list[int(0.9 * len(user_list)):])
+        # self.out_indexes = out_indexes
+        # valid_splits = [[], []]
+        # test_splits = [[], []]
 
-        for user_list in self.out_indexes[1]:
-            test_splits[0].extend(user_list[:int(0.9 * len(user_list))])
-            test_splits[1].extend(user_list[int(0.9 * len(user_list)):])
-        next_index.extend(test_splits)
-        next_index.extend(valid_splits)
+        # for user_list in out_indexes[1]:
+        #     valid_splits[0].extend(user_list[:int(0.9 * len(user_list))])
+        #     valid_splits[1].extend(user_list[int(0.9 * len(user_list)):])
+        #
+        # for user_list in out_indexes[2]:
+        #     test_splits[0].extend(user_list[:int(0.9 * len(user_list))])
+        #     test_splits[1].extend(user_list[int(0.9 * len(user_list)):])
+        # next_index.extend(valid_splits)
+        # next_index.extend(test_splits)
+
         next_df = [self.inter_feat[index] for index in next_index]
         next_ds = [self.copy(_) for _ in next_df]
+
+        # next_ds[0].out_indexes = out_indexes[0] # training
+        # next_ds[1].out_indexes = out_indexes[1] # validation
+        # next_ds[2].out_indexes = out_indexes[2] # test
+
+        all_valid_gt_items = []
+        for seq_indexes in out_indexes[1]:
+            valid_gt_indexes = seq_indexes[int(0.9 * len(seq_indexes)):]
+            valid_gt_items = self.inter_feat[self.iid_field][valid_gt_indexes]
+            all_valid_gt_items.append(valid_gt_items)
+
+        all_test_gt_items = []
+        for seq_indexes in out_indexes[2]:
+            test_gt_indexes = seq_indexes[int(0.9 * len(seq_indexes)):]
+            test_gt_items = self.inter_feat[self.iid_field][test_gt_indexes]
+            all_test_gt_items.append(test_gt_items)
+
+        next_ds[1].gt_items = all_valid_gt_items
+        next_ds[2].gt_items = all_test_gt_items
+
         return next_ds
-
-
 
     def _calcu_split_ids(self, tot, ratios):
         """Given split ratios, and total number, calculate the number of each part after splitting.
@@ -1891,7 +1899,7 @@ class Dataset(torch.utils.data.Dataset):
             return self.item_feat
 
     def _create_sparse_matrix(
-        self, df_feat, source_field, target_field, form="coo", value_field=None
+            self, df_feat, source_field, target_field, form="coo", value_field=None
     ):
         """Get sparse matrix that describe relations between two fields.
 
@@ -1937,8 +1945,8 @@ class Dataset(torch.utils.data.Dataset):
                 f"Sparse matrix format [{form}] has not been implemented."
             )
 
-    def _create_graph(
-        self, tensor_feat, source_field, target_field, form="dgl", value_field=None
+    def _create_raph(
+            self, tensor_feat, source_field, target_field, form="dgl", value_field=None
     ):
         """Get graph that describe relations between two fields.
 
@@ -2208,4 +2216,3 @@ class Dataset(torch.utils.data.Dataset):
                     ]
                     new_data[k] = rnn_utils.pad_sequence(seq_data, batch_first=True)
         return Interaction(new_data)
-

@@ -321,13 +321,13 @@ class FullSortEvalCustDataLoader(FullSortEvalDataLoader):
 
     # (config, valid_dataset, valid_sampler, shuffle=False)
 
-    def __init__(self, config, datasets, sampler, shuffle=False):
-        self.datasets = datasets
-        dataset = self.datasets[0]
+    # def __init__(self, config, datasets, sampler, shuffle=False):
+    def __init__(self, config, dataset, sampler, shuffle=False):
         self.logger = getLogger()
         self.uid_field = dataset.uid_field
         self.iid_field = dataset.iid_field
         self.is_sequential = config["MODEL_TYPE"] == ModelType.SEQUENTIAL
+        self.gt_items = dataset.gt_items
 
         if not self.is_sequential:
             print(self.is_sequential)
@@ -403,15 +403,15 @@ class FullSortEvalCustDataLoader(FullSortEvalDataLoader):
             positive_i = torch.cat(list(positive_item))
 
             return user_df, (history_u, history_i), positive_u, positive_i
-            print(' ')
         else:
-            interaction = self.datasets[1][index]
-            transformed_interaction = self.transform(self.datasets[0], interaction)
-            inter_num = len(transformed_interaction)
-            positive_u = torch.arange(inter_num)
-            #positive_i = self.datasets[2][self.iid_field]
-            positive_i = transformed_interaction[self.iid_field]
+            interaction = self._dataset[index]
+            inter_num = len(interaction)
+            positive_u, positive_i = [], []
+            for i in range(len(self.gt_items)):
+                gt_items_i = self.gt_items[i]
+                positive_u.extend([i]*len(gt_items_i))
+                positive_i.extend(gt_items_i)
+            positive_u = torch.tensor(positive_u)
+            positive_i = torch.tensor(positive_i)
 
-
-            return transformed_interaction, None, positive_u, positive_i
-
+            return interaction, None, positive_u, positive_i

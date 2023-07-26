@@ -170,7 +170,8 @@ def data_preparation(config, dataset):
         model_type = config["MODEL_TYPE"]
         built_datasets = dataset.build()
 
-        train_dataset, valid_dataset, test_dataset, valid_in, valid_gt, test_in, test_gt = built_datasets
+        # train_dataset, valid_dataset, test_dataset, valid_in, valid_gt, test_in, test_gt = built_datasets
+        train_dataset, valid_dataset, test_dataset = built_datasets
         train_sampler, valid_sampler, test_sampler = create_samplers(
             config, dataset, built_datasets
         )
@@ -194,10 +195,12 @@ def data_preparation(config, dataset):
             )
 
         valid_data = get_dataloader(config, "valid")(
-            config, (valid_dataset, valid_in, valid_gt), valid_sampler, shuffle=False
+            # config, (valid_dataset, valid_in, valid_gt), valid_sampler, shuffle=False
+            config, valid_dataset, valid_sampler, shuffle=False
         )
         test_data = get_dataloader(config, "test")(
-            config, (test_dataset, test_in, test_gt), test_sampler, shuffle=False
+            # config, (test_dataset, test_in, test_gt), test_sampler, shuffle=False
+            config, test_dataset, test_sampler, shuffle=False
         )
         if config["save_dataloaders"]:
             save_split_dataloaders(
