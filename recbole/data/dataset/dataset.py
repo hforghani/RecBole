@@ -106,6 +106,7 @@ class Dataset(torch.utils.data.Dataset):
         self.dataset_name = config["dataset"]
         self.logger = getLogger()
         self._from_scratch()
+        self.out_indexes = None
 
     def _from_scratch(self):
         """Load dataset from scratch.
@@ -1624,13 +1625,14 @@ class Dataset(torch.utils.data.Dataset):
 
 
         elif True:
+            print('lklkllkkkkkoooo')
             # elif group_by == 'amazon':
             grouped_inter_feat_index = self._grouped_index(self.inter_feat[group_by].numpy())
             out_indexes = [[] for _ in range(len(ratios))]
             tot_cnt = len(grouped_inter_feat_index)
             split_ids = self._calcu_split_ids(tot=tot_cnt, ratios=ratios)
             grouped_inter_feat_index_list = list(grouped_inter_feat_index)
-
+            valid_inter_user_list = []
             for index, start, end in zip(out_indexes, [0] + split_ids, split_ids + [tot_cnt]):
                 index.extend(grouped_inter_feat_index_list[start:end])
 
@@ -1668,6 +1670,19 @@ class Dataset(torch.utils.data.Dataset):
                 for index, start, end in zip(next_index, [0] + split_ids, split_ids + [tot_cnt]):
                     index.extend(grouped_index[start:end])
         self._drop_unused_col()
+        self.out_indexes = out_indexes
+        valid_splits = [[], []]
+        test_splits = [[], []]
+
+        for user_list in self.out_indexes[2]:
+            valid_splits[0].extend(user_list[:int(0.9 * len(user_list))])
+            valid_splits[1].extend(user_list[int(0.9 * len(user_list)):])
+
+        for user_list in self.out_indexes[1]:
+            test_splits[0].extend(user_list[:int(0.9 * len(user_list))])
+            test_splits[1].extend(user_list[int(0.9 * len(user_list)):])
+        next_index.extend(test_splits)
+        next_index.extend(valid_splits)
         next_df = [self.inter_feat[index] for index in next_index]
         next_ds = [self.copy(_) for _ in next_df]
         return next_ds
@@ -2193,3 +2208,4 @@ class Dataset(torch.utils.data.Dataset):
                     ]
                     new_data[k] = rnn_utils.pad_sequence(seq_data, batch_first=True)
         return Interaction(new_data)
+
