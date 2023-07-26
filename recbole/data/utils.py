@@ -223,7 +223,6 @@ def data_preparation(config, dataset):
 
     return train_data, valid_data, test_data
 
-
 def get_dataloader(config, phase: Literal["train", "valid", "test", "evaluation"]):
     """Return a dataloader class according to :attr:`config` and :attr:`phase`.
     Args:
@@ -267,13 +266,16 @@ def get_dataloader(config, phase: Literal["train", "valid", "test", "evaluation"
     else:
         eval_mode = config["eval_args"]["mode"][phase]
         if eval_mode == "full":
-            #Valid and Test
-            print(phase)
+            return FullSortEvalCustDataLoader
+            #if config["custom_split"] == False:
+                #return FullSortEvalDataLoader
+            #elif config["custom_split"] == True:
+                #return FullSortEvalCustDataLoader
 
-            return FullSortEvalDataLoader
+
+
         else:
             return NegSampleEvalDataLoader
-
 
 def _get_AE_dataloader(config, phase: Literal["train", "valid", "test", "evaluation"]):
     """Customized function for VAE models to get correct dataloader class.

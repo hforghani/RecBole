@@ -307,33 +307,7 @@ class FullSortEvalDataLoader(AbstractDataLoader):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class FullSortCustEvalDataLoader(FullSortEvalDataLoader):
+class FullSortEvalCustDataLoader(FullSortEvalDataLoader):
     """:class:`FullSortEvalDataLoader` is a dataloader for full-sort evaluation. In order to speed up calculation,
     this dataloader would only return then user part of interactions, positive items and used items.
     It would not return negative items.
@@ -344,11 +318,17 @@ class FullSortCustEvalDataLoader(FullSortEvalDataLoader):
         sampler (Sampler): The sampler of dataloader.
         shuffle (bool, optional): Whether the dataloader will be shuffle after a round. Defaults to ``False``.
     """
-    def __init__(self, config, dataset, sampler, shuffle=False):
+
+    # (config, valid_dataset, valid_sampler, shuffle=False)
+
+    def __init__(self, config, datasets, sampler, shuffle=False):
+        self.datasets = datasets
+        dataset = self.datasets[0]
         self.logger = getLogger()
         self.uid_field = dataset.uid_field
         self.iid_field = dataset.iid_field
         self.is_sequential = config["MODEL_TYPE"] == ModelType.SEQUENTIAL
+
         if not self.is_sequential:
             print(self.is_sequential)
             user_num = dataset.user_num
@@ -365,8 +345,8 @@ class FullSortCustEvalDataLoader(FullSortEvalDataLoader):
             dataset_feat_iid = dataset.inter_feat[self.iid_field].numpy()
 
             for uid, iid in zip(
-                dataset_feat_uid[int(0*len(dataset_feat_uid)):],
-                dataset_feat_iid[int(0*len(dataset_feat_iid)):],):
+                    dataset_feat_uid[int(0.9 * len(dataset_feat_uid)):],
+                    dataset_feat_iid[int(0.9 * len(dataset_feat_iid)):], ):
                 if uid != last_uid:
                     self._set_user_property(
                         last_uid, uid2used_item[last_uid], positive_item
@@ -383,3 +363,55 @@ class FullSortCustEvalDataLoader(FullSortEvalDataLoader):
         if shuffle:
             self.logger.warnning("FullSortEvalDataLoader can't shuffle")
             shuffle = False
+        super().__init__(config, dataset, sampler, shuffle=shuffle)
+
+    def _init_batch_size_and_step(self):
+        batch_size = self.config["eval_batch_size"]
+        if not self.is_sequential:
+            batch_num = max(batch_size // self._dataset.item_num, 1)
+            new_batch_size = batch_num * self._dataset.item_num
+            self.step = batch_num
+            self.set_batch_size(new_batch_size)
+        else:
+            self.step = batch_size
+            self.set_batch_size(batch_size)
+
+    def update_config(self, config):
+        super().update_config(config)
+
+    def collate_fn(self, index):
+        index = np.array(index)
+        if not self.is_sequential:
+            print(self.is_sequential)
+            user_df = self.user_df[index]
+            uid_list = list(user_df[self.uid_field])
+
+            history_item = self.uid2history_item[uid_list]
+            positive_item = self.uid2positive_item[uid_list]
+
+            history_u = torch.cat(
+                [
+                    torch.full_like(hist_iid, i)
+                    for i, hist_iid in enumerate(history_item)
+                ]
+            )
+            history_i = torch.cat(list(history_item))
+
+            positive_u = torch.cat(
+                [torch.full_like(pos_iid, i) for i, pos_iid in enumerate(positive_item)]
+            )
+            positive_i = torch.cat(list(positive_item))
+
+            return user_df, (history_u, history_i), positive_u, positive_i
+            print(' ')
+        else:
+            interaction = self.datasets[1][index]
+            transformed_interaction = self.transform(self.datasets[0], interaction)
+            inter_num = len(transformed_interaction)
+            positive_u = torch.arange(inter_num)
+            #positive_i = self.datasets[2][self.iid_field]
+            positive_i = transformed_interaction[self.iid_field]
+
+
+            return transformed_interaction, None, positive_u, positive_i
+
