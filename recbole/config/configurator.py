@@ -347,11 +347,6 @@ class Config(object):
             self.final_config_dict["MODEL_INPUT_TYPE"] = self.model_class.input_type
         elif "loss_type" in self.final_config_dict:
             if self.final_config_dict["loss_type"] in ["CE"]:
-                print(
-                    f'train_neg_sample_args is in self.final_config_dict? {"train_neg_sample_args" in self.final_config_dict}')
-                train_neg_sample_args = self.final_config_dict.get("train_neg_sample_args", None)
-                print(f'train_neg_sample_args = {train_neg_sample_args}')
-                print(f'type = {type(train_neg_sample_args)}')
                 if (
                         self.final_config_dict["MODEL_TYPE"] == ModelType.SEQUENTIAL
                         and self.final_config_dict.get("train_neg_sample_args", None)
