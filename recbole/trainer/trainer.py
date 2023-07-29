@@ -519,12 +519,9 @@ class Trainer(AbstractTrainer):
     def _full_sort_batch_eval(self, batched_data):
         interaction, history_index, positive_u, positive_i = batched_data
         try:
-            print('yes')
             # Note: interaction without item ids
             scores = self.model.full_sort_predict(interaction.to(self.device))
-            print(' ')
         except NotImplementedError:
-            print('no')
             inter_len = len(interaction)
             new_inter = interaction.to(self.device).repeat_interleave(self.tot_item_num)
             batch_size = len(new_inter)
@@ -612,8 +609,6 @@ class Trainer(AbstractTrainer):
             if show_progress
             else eval_data
         )
-
-        print(eval_data)
 
         num_sample = 0
         for batch_idx, batched_data in enumerate(iter_data):

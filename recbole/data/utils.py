@@ -170,20 +170,17 @@ def data_preparation(config, dataset):
         model_type = config["MODEL_TYPE"]
         built_datasets = dataset.build()
 
-        # train_dataset, valid_dataset, test_dataset, valid_in, valid_gt, test_in, test_gt = built_datasets
         train_dataset, valid_dataset, test_dataset = built_datasets
         train_sampler, valid_sampler, test_sampler = create_samplers(
             config, dataset, built_datasets
         )
 
         if model_type != ModelType.KNOWLEDGE:
-            print('hi1')
             train_data = get_dataloader(config, "train")(
                 config, train_dataset, train_sampler, shuffle=config["shuffle"]
             )
 
         else:
-            print('hi2')
 
             kg_sampler = KGSampler(
                 dataset,
@@ -195,11 +192,9 @@ def data_preparation(config, dataset):
             )
 
         valid_data = get_dataloader(config, "valid")(
-            # config, (valid_dataset, valid_in, valid_gt), valid_sampler, shuffle=False
             config, valid_dataset, valid_sampler, shuffle=False
         )
         test_data = get_dataloader(config, "test")(
-            # config, (test_dataset, test_in, test_gt), test_sampler, shuffle=False
             config, test_dataset, test_sampler, shuffle=False
         )
         if config["save_dataloaders"]:
@@ -273,14 +268,7 @@ def get_dataloader(config, phase: Literal["train", "valid", "test", "evaluation"
     else:
         eval_mode = config["eval_args"]["mode"][phase]
         if eval_mode == "full":
-            return FullSortEvalCustDataLoader
-            #if config["custom_split"] == False:
-                #return FullSortEvalDataLoader
-            #elif config["custom_split"] == True:
-                #return FullSortEvalCustDataLoader
-
-
-
+            return FullSortEvalDataLoader
         else:
             return NegSampleEvalDataLoader
 

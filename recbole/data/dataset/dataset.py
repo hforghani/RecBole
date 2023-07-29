@@ -106,7 +106,6 @@ class Dataset(torch.utils.data.Dataset):
         self.dataset_name = config["dataset"]
         self.logger = getLogger()
         self._from_scratch()
-        self.out_indexes = None
 
     def _from_scratch(self):
         """Load dataset from scratch.
@@ -1590,6 +1589,11 @@ class Dataset(torch.utils.data.Dataset):
                 self._del_col(feat, field)
 
     def _grouped_index(self, group_by_list):
+        """
+        Group the list indexes by their values.
+        :param group_by_list:
+        :return: An iterrable of list of indexes. The related values of each index list are the same.
+        """
         index = {}
 
         for i, key in enumerate(group_by_list):
@@ -1620,80 +1624,26 @@ class Dataset(torch.utils.data.Dataset):
         if group_by is None:
             tot_cnt = self.__len__()
             split_ids = self._calcu_split_ids(tot=tot_cnt, ratios=ratios)
-            next_index = [range(start, end) for start, end in zip([0] + split_ids, split_ids + [tot_cnt])]
-
-
-
-        elif True:  # TODO
-            # elif group_by == 'amazon':
-            grouped_inter_feat_index = self._grouped_index(self.inter_feat[group_by].numpy())
-            out_indexes = [[] for _ in range(len(ratios))]
-            tot_cnt = len(grouped_inter_feat_index)
-            split_ids = self._calcu_split_ids(tot=tot_cnt, ratios=ratios)
-            grouped_inter_feat_index_list = list(grouped_inter_feat_index)
-            valid_inter_user_list = []
-            for index, start, end in zip(out_indexes, [0] + split_ids, split_ids + [tot_cnt]):
-                index.extend(grouped_inter_feat_index_list[start:end])
-
-            next_index = [[] for _ in range(len(ratios))]
-
-            for seq in out_indexes[0]:  # Training
-                next_index[0].extend(seq)
-
-            for i in [1, 2]:  # Validation & Test
-                for seq in out_indexes[i]:
-                    next_index[i].append(seq[int(0.9 * len(seq))])
-
-            # i = 0
-            # for index in out_indexes:
-            #     for group in index:
-            #         next_index[i].extend(group)
-            #     i += 1
+            next_index = [
+                range(start, end)
+                for start, end in zip([0] + split_ids, split_ids + [tot_cnt])
+            ]
         else:
-            grouped_inter_feat_index = self._grouped_index(self.inter_feat[group_by].numpy())
+            grouped_inter_feat_index = self._grouped_index(
+                self.inter_feat[group_by].numpy()
+            )
             next_index = [[] for _ in range(len(ratios))]
             for grouped_index in grouped_inter_feat_index:
                 tot_cnt = len(grouped_index)
                 split_ids = self._calcu_split_ids(tot=tot_cnt, ratios=ratios)
-                for index, start, end in zip(next_index, [0] + split_ids, split_ids + [tot_cnt]):
+                for index, start, end in zip(
+                        next_index, [0] + split_ids, split_ids + [tot_cnt]
+                ):
                     index.extend(grouped_index[start:end])
+
         self._drop_unused_col()
-
-        # self.out_indexes = out_indexes
-        # valid_splits = [[], []]
-        # test_splits = [[], []]
-
-        # for user_list in out_indexes[1]:
-        #     valid_splits[0].extend(user_list[:int(0.9 * len(user_list))])
-        #     valid_splits[1].extend(user_list[int(0.9 * len(user_list)):])
-        #
-        # for user_list in out_indexes[2]:
-        #     test_splits[0].extend(user_list[:int(0.9 * len(user_list))])
-        #     test_splits[1].extend(user_list[int(0.9 * len(user_list)):])
-        # next_index.extend(valid_splits)
-        # next_index.extend(test_splits)
-
         next_df = [self.inter_feat[index] for index in next_index]
         next_ds = [self.copy(_) for _ in next_df]
-
-        # next_ds[0].out_indexes = out_indexes[0] # training
-        # next_ds[1].out_indexes = out_indexes[1] # validation
-        # next_ds[2].out_indexes = out_indexes[2] # test
-
-        all_valid_gt_items = []
-        for seq_indexes in out_indexes[1]:
-            valid_gt_indexes = seq_indexes[int(0.9 * len(seq_indexes)):]
-            valid_gt_items = self.inter_feat[self.iid_field][valid_gt_indexes]
-            all_valid_gt_items.append(valid_gt_items)
-
-        all_test_gt_items = []
-        for seq_indexes in out_indexes[2]:
-            test_gt_indexes = seq_indexes[int(0.9 * len(seq_indexes)):]
-            test_gt_items = self.inter_feat[self.iid_field][test_gt_indexes]
-            all_test_gt_items.append(test_gt_items)
-
-        next_ds[1].gt_items = all_valid_gt_items
-        next_ds[2].gt_items = all_test_gt_items
 
         return next_ds
 

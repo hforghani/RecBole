@@ -91,8 +91,8 @@ class NegSampleEvalDataLoader(NegSampleDataLoader):
             config, dataset, InputType.POINTWISE, config[f"{phase}_neg_sample_args"]
         )
         if (
-            self.neg_sample_args["distribution"] != "none"
-            and self.neg_sample_args["sample_num"] != "none"
+                self.neg_sample_args["distribution"] != "none"
+                and self.neg_sample_args["sample_num"] != "none"
         ):
             user_num = dataset.user_num
             dataset.sort(by=dataset.uid_field, ascending=True)
@@ -120,8 +120,8 @@ class NegSampleEvalDataLoader(NegSampleDataLoader):
     def _init_batch_size_and_step(self):
         batch_size = self.config["eval_batch_size"]
         if (
-            self.neg_sample_args["distribution"] != "none"
-            and self.neg_sample_args["sample_num"] != "none"
+                self.neg_sample_args["distribution"] != "none"
+                and self.neg_sample_args["sample_num"] != "none"
         ):
             inters_num = sorted(self.uid2items_num * self.times, reverse=True)
             batch_num = 1
@@ -150,8 +150,8 @@ class NegSampleEvalDataLoader(NegSampleDataLoader):
     def collate_fn(self, index):
         index = np.array(index)
         if (
-            self.neg_sample_args["distribution"] != "none"
-            and self.neg_sample_args["sample_num"] != "none"
+                self.neg_sample_args["distribution"] != "none"
+                and self.neg_sample_args["sample_num"] != "none"
         ):
             uid_list = self.uid_list[index]
             data_list = []
@@ -193,16 +193,12 @@ class FullSortEvalDataLoader(AbstractDataLoader):
         shuffle (bool, optional): Whether the dataloader will be shuffle after a round. Defaults to ``False``.
     """
 
-
-    #(config, valid_dataset, valid_sampler, shuffle=False)
-
     def __init__(self, config, dataset, sampler, shuffle=False):
         self.logger = getLogger()
         self.uid_field = dataset.uid_field
         self.iid_field = dataset.iid_field
         self.is_sequential = config["MODEL_TYPE"] == ModelType.SEQUENTIAL
         if not self.is_sequential:
-            print(self.is_sequential)
             user_num = dataset.user_num
             self.uid_list = []
             self.uid2items_num = np.zeros(user_num, dtype=np.int64)
@@ -213,12 +209,10 @@ class FullSortEvalDataLoader(AbstractDataLoader):
             last_uid = None
             positive_item = set()
             uid2used_item = sampler.used_ids
-            dataset_feat_uid = dataset.inter_feat[self.uid_field].numpy()
-            dataset_feat_iid = dataset.inter_feat[self.iid_field].numpy()
-
             for uid, iid in zip(
-                dataset_feat_uid[int(0.9*len(dataset_feat_uid)):],
-                dataset_feat_iid[int(0.9*len(dataset_feat_iid)):],):
+                    dataset.inter_feat[self.uid_field].numpy(),
+                    dataset.inter_feat[self.iid_field].numpy(),
+            ):
                 if uid != last_uid:
                     self._set_user_property(
                         last_uid, uid2used_item[last_uid], positive_item
@@ -236,7 +230,6 @@ class FullSortEvalDataLoader(AbstractDataLoader):
             self.logger.warnning("FullSortEvalDataLoader can't shuffle")
             shuffle = False
         super().__init__(config, dataset, sampler, shuffle=shuffle)
-
 
     def _set_user_property(self, uid, used_item, positive_item):
         if uid is None:
@@ -247,7 +240,6 @@ class FullSortEvalDataLoader(AbstractDataLoader):
         )
         self.uid2items_num[uid] = len(positive_item)
         self.uid2history_item[uid] = torch.tensor(list(history_item), dtype=torch.int64)
-        print('hii')
 
     def _init_batch_size_and_step(self):
         batch_size = self.config["eval_batch_size"]
@@ -266,7 +258,6 @@ class FullSortEvalDataLoader(AbstractDataLoader):
     def collate_fn(self, index):
         index = np.array(index)
         if not self.is_sequential:
-            print(self.is_sequential)
             user_df = self.user_df[index]
             uid_list = list(user_df[self.uid_field])
 
@@ -287,7 +278,6 @@ class FullSortEvalDataLoader(AbstractDataLoader):
             positive_i = torch.cat(list(positive_item))
 
             return user_df, (history_u, history_i), positive_u, positive_i
-            print(' ')
         else:
             interaction = self._dataset[index]
             transformed_interaction = self.transform(self._dataset, interaction)
@@ -296,122 +286,3 @@ class FullSortEvalDataLoader(AbstractDataLoader):
             positive_i = transformed_interaction[self.iid_field]
 
             return transformed_interaction, None, positive_u, positive_i
-
-
-
-
-
-
-
-
-
-
-
-class FullSortEvalCustDataLoader(FullSortEvalDataLoader):
-    """:class:`FullSortEvalDataLoader` is a dataloader for full-sort evaluation. In order to speed up calculation,
-    this dataloader would only return then user part of interactions, positive items and used items.
-    It would not return negative items.
-
-    Args:
-        config (Config): The config of dataloader.
-        dataset (Dataset): The dataset of dataloader.
-        sampler (Sampler): The sampler of dataloader.
-        shuffle (bool, optional): Whether the dataloader will be shuffle after a round. Defaults to ``False``.
-    """
-
-    # (config, valid_dataset, valid_sampler, shuffle=False)
-
-    # def __init__(self, config, datasets, sampler, shuffle=False):
-    def __init__(self, config, dataset, sampler, shuffle=False):
-        self.logger = getLogger()
-        self.uid_field = dataset.uid_field
-        self.iid_field = dataset.iid_field
-        self.is_sequential = config["MODEL_TYPE"] == ModelType.SEQUENTIAL
-        self.gt_items = dataset.gt_items
-
-        if not self.is_sequential:
-            print(self.is_sequential)
-            user_num = dataset.user_num
-            self.uid_list = []
-            self.uid2items_num = np.zeros(user_num, dtype=np.int64)
-            self.uid2positive_item = np.array([None] * user_num)
-            self.uid2history_item = np.array([None] * user_num)
-
-            dataset.sort(by=self.uid_field, ascending=True)
-            last_uid = None
-            positive_item = set()
-            uid2used_item = sampler.used_ids
-            dataset_feat_uid = dataset.inter_feat[self.uid_field].numpy()
-            dataset_feat_iid = dataset.inter_feat[self.iid_field].numpy()
-
-            for uid, iid in zip(
-                    dataset_feat_uid[int(0.9 * len(dataset_feat_uid)):],
-                    dataset_feat_iid[int(0.9 * len(dataset_feat_iid)):], ):
-                if uid != last_uid:
-                    self._set_user_property(
-                        last_uid, uid2used_item[last_uid], positive_item
-                    )
-                    last_uid = uid
-                    self.uid_list.append(uid)
-                    positive_item = set()
-                positive_item.add(iid)
-            self._set_user_property(last_uid, uid2used_item[last_uid], positive_item)
-            self.uid_list = torch.tensor(self.uid_list, dtype=torch.int64)
-            self.user_df = dataset.join(Interaction({self.uid_field: self.uid_list}))
-
-        self.sample_size = len(self.user_df) if not self.is_sequential else len(dataset)
-        if shuffle:
-            self.logger.warnning("FullSortEvalDataLoader can't shuffle")
-            shuffle = False
-        super().__init__(config, dataset, sampler, shuffle=shuffle)
-
-    def _init_batch_size_and_step(self):
-        batch_size = self.config["eval_batch_size"]
-        if not self.is_sequential:
-            batch_num = max(batch_size // self._dataset.item_num, 1)
-            new_batch_size = batch_num * self._dataset.item_num
-            self.step = batch_num
-            self.set_batch_size(new_batch_size)
-        else:
-            self.step = batch_size
-            self.set_batch_size(batch_size)
-
-    def update_config(self, config):
-        super().update_config(config)
-
-    def collate_fn(self, index):
-        index = np.array(index)
-        if not self.is_sequential:
-            print(self.is_sequential)
-            user_df = self.user_df[index]
-            uid_list = list(user_df[self.uid_field])
-
-            history_item = self.uid2history_item[uid_list]
-            positive_item = self.uid2positive_item[uid_list]
-
-            history_u = torch.cat(
-                [
-                    torch.full_like(hist_iid, i)
-                    for i, hist_iid in enumerate(history_item)
-                ]
-            )
-            history_i = torch.cat(list(history_item))
-
-            positive_u = torch.cat(
-                [torch.full_like(pos_iid, i) for i, pos_iid in enumerate(positive_item)]
-            )
-            positive_i = torch.cat(list(positive_item))
-
-            return user_df, (history_u, history_i), positive_u, positive_i
-        else:
-            interaction = self._dataset[index]
-            inter_num = len(interaction)
-            positive_u, positive_i = [], []
-            for i in range(len(self.gt_items)):
-                gt_items_i = self.gt_items[i]
-                positive_u.extend([i]*len(gt_items_i))
-                positive_i.extend(gt_items_i)
-            positive_u = torch.tensor(positive_u)
-            positive_i = torch.tensor(positive_i)
-
-            return interaction, None, positive_u, positive_i

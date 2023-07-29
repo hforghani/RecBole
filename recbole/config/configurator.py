@@ -154,10 +154,12 @@ class Config(object):
                     file_config_dict.update(
                         yaml.load(f.read(), Loader=self.yaml_loader)
                     )
+
+        # Replace 'None' str values with None.
         for key, value in file_config_dict.items():
             if value == 'None':
                 file_config_dict[key] = None
-        print(f'file_config_dict = {file_config_dict}')
+
         return file_config_dict
 
     def _load_variable_config_dict(self, config_dict):

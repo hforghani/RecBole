@@ -23,7 +23,6 @@ set of user(u)-item(i) pairs, :math:`\hat r_{u i}` represents the score predicte
 """
 
 from logging import getLogger
-import torch
 import numpy as np
 from collections import Counter
 from sklearn.metrics import auc as sk_auc
