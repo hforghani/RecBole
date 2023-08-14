@@ -124,8 +124,9 @@ class SequentialDataset(Dataset):
             self.item_list_length_field: torch.tensor(item_list_length),
         }
 
-        for field in self.inter_feat:
-            if field != self.uid_field:
+        augmented_fields = [self.iid_field]
+
+        for field in augmented_fields:
                 list_field = getattr(self, f"{field}_list_field")
                 list_len = self.field2seqlen[list_field]
                 shape = (
