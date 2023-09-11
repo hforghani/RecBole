@@ -24,6 +24,8 @@ import pandas as pd
 import torch
 import torch.nn.utils.rnn as rnn_utils
 from scipy.sparse import coo_matrix
+from DeepVectorizer.models import ZIBERT
+
 from recbole.data.interaction import Interaction
 from recbole.utils import (
     FeatureSource,
@@ -168,6 +170,59 @@ class Dataset(torch.utils.data.Dataset):
         self._normalize()
         self._discretization()
         self._preload_weight_matrix()
+        if self.config['zibert_embedding']:
+            self.load_or_calc_zibert()
+
+    def _embed_by_zibert(self):
+        """
+        Embed the token sequence fields of items using Zibert embedding in DeepVectorizer package.
+        """
+        rclone_config = '[models]\ntype = s3\nprovider = Ceph\nenv_auth = false\nv2_auth = true \n access_key_id = ' \
+                        'da-dev-readonly-88258e0161001fae \n secret_access_key = 1f934a5536478621fe750ba73895e044 \n endpoint = ' \
+                        'https://cmn-prod-rgw.kp0.mci.dev/'
+        model = ZIBERT(rclone_config, model_finetune_method='simcse-sup-q2d', cuda=True)
+        # self.zibert_embeddings: dict of field names to their Zibert embedding vectors.
+        # Each vector is a tensor of size items_num * 256. Thir i'th row of the vector is the embedding of the item
+        # specified by item_id "i".
+        self.zibert_embeddings = {}
+
+        for field_name, ftype in self.field2type.items():
+            if ftype == FeatureType.TOKEN_SEQ and field_name in self.item_feat:
+                id_token = self.field2id_token[field_name]
+                values = [
+                    ' '.join([id_token[t] if t != 0 else '' for t in row]).strip()
+                    for row in self.item_feat[field_name]
+                ]
+                self.logger.debug('getting Zibert embedding of %s ...', field_name)
+                vec = model.query2vec(values)
+                vec = torch.from_numpy(vec)
+                vec = torch.nn.functional.normalize(vec, dim=1)
+                vec = vec.to(self.config['device'])
+                self.zibert_embeddings[field_name] = vec
+
+    def _save_zibert(self, zibert_embeddings):
+        for field_name, vec in zibert_embeddings.items():
+            self.logger.debug('saving Zibert embedding of %s ...', field_name)
+            save_dir = self.config["checkpoint_dir"]
+            ensure_dir(save_dir)
+            file = os.path.join(
+                save_dir, f'{self.config["dataset"]}-{self.__class__.__name__}-zibert-{field_name}.pt'
+            )
+            torch.save(vec, file)
+
+
+    def load_or_calc_zibert(self):
+        self.zibert_embeddings = {}
+        for field_name, ftype in self.field2type.items():
+            if ftype == FeatureType.TOKEN_SEQ and field_name in self.item_feat:
+                zibert_file = os.path.join(
+                        self.config["checkpoint_dir"], f'{self.config["dataset"]}-{self.__class__.__name__}-zibert-{field_name}.pt'
+                    )
+                if os.path.exists(zibert_file):
+                    self.zibert_embeddings[field_name] = torch.load(zibert_file)
+                    self.logger.debug('device of self.zibert_embeddings[field_name] = %s', self.zibert_embeddings[field_name].get_device())
+        if not self.zibert_embeddings:
+            self._embed_by_zibert()
 
     def _data_filtering(self):
         """Data filtering
@@ -1823,8 +1878,17 @@ class Dataset(torch.utils.data.Dataset):
         self.logger.info(
             set_color("Saving filtered dataset into ", "pink") + f"[{file}]"
         )
+        zibert_embeddings = None
+        if hasattr(self, 'zibert_embeddings'):
+            zibert_embeddings = self.zibert_embeddings
+            self._save_zibert(zibert_embeddings)
+            self.zibert_embeddings = None
+
         with open(file, "wb") as f:
             pickle.dump(self, f)
+
+        if zibert_embeddings:
+            self.zibert_embeddings = zibert_embeddings
 
     def get_user_feature(self):
         """

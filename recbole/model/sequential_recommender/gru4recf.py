@@ -18,7 +18,7 @@ from torch import nn
 
 from recbole.model.abstract_recommender import SequentialRecommender
 from recbole.model.init import xavier_normal_initialization
-from recbole.model.layers import FeatureSeqEmbLayer
+from recbole.model.layers import FeatureSeqEmbLayer, ZibertFeatSeqEmbLayer
 from recbole.model.loss import BPRLoss
 
 
@@ -58,7 +58,9 @@ class GRU4RecF(SequentialRecommender):
         self.item_embedding = nn.Embedding(
             self.n_items, self.embedding_size, padding_idx=0
         )
-        self.feature_embed_layer = FeatureSeqEmbLayer(
+
+        SeqEmbLayerClass = ZibertFeatSeqEmbLayer if config['zibert_embedding'] else FeatureSeqEmbLayer
+        self.feature_embed_layer = SeqEmbLayerClass(
             dataset,
             self.embedding_size,
             self.selected_features,

@@ -12,7 +12,7 @@ import torch
 from torch import nn
 
 from recbole.model.abstract_recommender import SequentialRecommender
-from recbole.model.layers import TransformerEncoder, FeatureSeqEmbLayer
+from recbole.model.layers import TransformerEncoder, FeatureSeqEmbLayer, ZibertFeatSeqEmbLayer
 from recbole.model.loss import BPRLoss
 from recbole.utils import FeatureType
 
@@ -55,7 +55,9 @@ class SASRecF(SequentialRecommender):
             self.n_items, self.hidden_size, padding_idx=0
         )
         self.position_embedding = nn.Embedding(self.max_seq_length, self.hidden_size)
-        self.feature_embed_layer = FeatureSeqEmbLayer(
+
+        SeqEmbLayerClass = ZibertFeatSeqEmbLayer if config['zibert_embedding'] else FeatureSeqEmbLayer
+        self.feature_embed_layer = SeqEmbLayerClass(
             dataset,
             self.hidden_size,
             self.selected_features,

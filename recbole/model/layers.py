@@ -52,7 +52,7 @@ class MLPLayers(nn.Module):
     """
 
     def __init__(
-        self, layers, dropout=0.0, activation="relu", bn=False, init_method=None
+            self, layers, dropout=0.0, activation="relu", bn=False, init_method=None
     ):
         super(MLPLayers, self).__init__()
         self.layers = layers
@@ -63,7 +63,7 @@ class MLPLayers(nn.Module):
 
         mlp_modules = []
         for idx, (input_size, output_size) in enumerate(
-            zip(self.layers[:-1], self.layers[1:])
+                zip(self.layers[:-1], self.layers[1:])
         ):
             mlp_modules.append(nn.Dropout(p=self.dropout))
             mlp_modules.append(nn.Linear(input_size, output_size))
@@ -197,7 +197,7 @@ class BaseFactorizationMachine(nn.Module):
 
     def forward(self, input_x):
         square_of_sum = torch.sum(input_x, dim=1) ** 2
-        sum_of_square = torch.sum(input_x**2, dim=1)
+        sum_of_square = torch.sum(input_x ** 2, dim=1)
         output = square_of_sum - sum_of_square
         if self.reduce_sum:
             output = torch.sum(output, dim=1, keepdim=True)
@@ -297,12 +297,12 @@ class SequenceAttLayer(nn.Module):
     """
 
     def __init__(
-        self,
-        mask_mat,
-        att_hidden_size=(80, 40),
-        activation="sigmoid",
-        softmax_stag=False,
-        return_seq_weight=True,
+            self,
+            mask_mat,
+            att_hidden_size=(80, 40),
+            activation="sigmoid",
+            softmax_stag=False,
+            return_seq_weight=True,
     ):
         super(SequenceAttLayer, self).__init__()
         self.att_hidden_size = att_hidden_size
@@ -342,7 +342,7 @@ class SequenceAttLayer(nn.Module):
 
         output = output.masked_fill(mask=mask, value=torch.tensor(mask_value))
         output = output.unsqueeze(1)
-        output = output / (embedding_size**0.5)
+        output = output / (embedding_size ** 0.5)
 
         # get the weight of each user's history list about the target item
         if self.softmax_stag:
@@ -396,12 +396,12 @@ class MultiHeadAttention(nn.Module):
     """
 
     def __init__(
-        self,
-        n_heads,
-        hidden_size,
-        hidden_dropout_prob,
-        attn_dropout_prob,
-        layer_norm_eps,
+            self,
+            n_heads,
+            hidden_size,
+            hidden_dropout_prob,
+            attn_dropout_prob,
+            layer_norm_eps,
     ):
         super(MultiHeadAttention, self).__init__()
         if hidden_size % n_heads != 0:
@@ -482,7 +482,7 @@ class FeedForward(nn.Module):
     """
 
     def __init__(
-        self, hidden_size, inner_size, hidden_dropout_prob, hidden_act, layer_norm_eps
+            self, hidden_size, inner_size, hidden_dropout_prob, hidden_act, layer_norm_eps
     ):
         super(FeedForward, self).__init__()
         self.dense_1 = nn.Linear(hidden_size, inner_size)
@@ -542,14 +542,14 @@ class TransformerLayer(nn.Module):
     """
 
     def __init__(
-        self,
-        n_heads,
-        hidden_size,
-        intermediate_size,
-        hidden_dropout_prob,
-        attn_dropout_prob,
-        hidden_act,
-        layer_norm_eps,
+            self,
+            n_heads,
+            hidden_size,
+            intermediate_size,
+            hidden_dropout_prob,
+            attn_dropout_prob,
+            hidden_act,
+            layer_norm_eps,
     ):
         super(TransformerLayer, self).__init__()
         self.multi_head_attention = MultiHeadAttention(
@@ -586,15 +586,15 @@ class TransformerEncoder(nn.Module):
     """
 
     def __init__(
-        self,
-        n_layers=2,
-        n_heads=2,
-        hidden_size=64,
-        inner_size=256,
-        hidden_dropout_prob=0.5,
-        attn_dropout_prob=0.5,
-        hidden_act="gelu",
-        layer_norm_eps=1e-12,
+            self,
+            n_layers=2,
+            n_heads=2,
+            hidden_size=64,
+            inner_size=256,
+            hidden_dropout_prob=0.5,
+            attn_dropout_prob=0.5,
+            hidden_act="gelu",
+            layer_norm_eps=1e-12,
     ):
         super(TransformerEncoder, self).__init__()
         layer = TransformerLayer(
@@ -646,14 +646,14 @@ class ItemToInterestAggregation(nn.Module):
 
 class LightMultiHeadAttention(nn.Module):
     def __init__(
-        self,
-        n_heads,
-        k_interests,
-        hidden_size,
-        seq_len,
-        hidden_dropout_prob,
-        attn_dropout_prob,
-        layer_norm_eps,
+            self,
+            n_heads,
+            k_interests,
+            hidden_size,
+            seq_len,
+            hidden_dropout_prob,
+            attn_dropout_prob,
+            layer_norm_eps,
     ):
         super(LightMultiHeadAttention, self).__init__()
         if hidden_size % n_heads != 0:
@@ -683,7 +683,7 @@ class LightMultiHeadAttention(nn.Module):
         self.pos_q_linear = nn.Linear(hidden_size, self.all_head_size)
         self.pos_k_linear = nn.Linear(hidden_size, self.all_head_size)
         self.pos_scaling = (
-            float(self.attention_head_size * self.attn_scale_factor) ** -0.5
+                float(self.attention_head_size * self.attn_scale_factor) ** -0.5
         )
         self.pos_ln = nn.LayerNorm(hidden_size, eps=layer_norm_eps)
 
@@ -726,7 +726,7 @@ class LightMultiHeadAttention(nn.Module):
         value_layer_pos = self.transpose_for_scores(mixed_value_layer)
         pos_emb = self.pos_ln(pos_emb).unsqueeze(0)
         pos_query_layer = (
-            self.transpose_for_scores(self.pos_q_linear(pos_emb)) * self.pos_scaling
+                self.transpose_for_scores(self.pos_q_linear(pos_emb)) * self.pos_scaling
         )
         pos_key_layer = self.transpose_for_scores(self.pos_k_linear(pos_emb))
 
@@ -761,16 +761,16 @@ class LightTransformerLayer(nn.Module):
     """
 
     def __init__(
-        self,
-        n_heads,
-        k_interests,
-        hidden_size,
-        seq_len,
-        intermediate_size,
-        hidden_dropout_prob,
-        attn_dropout_prob,
-        hidden_act,
-        layer_norm_eps,
+            self,
+            n_heads,
+            k_interests,
+            hidden_size,
+            seq_len,
+            intermediate_size,
+            hidden_dropout_prob,
+            attn_dropout_prob,
+            hidden_act,
+            layer_norm_eps,
     ):
         super(LightTransformerLayer, self).__init__()
         self.multi_head_attention = LightMultiHeadAttention(
@@ -812,17 +812,17 @@ class LightTransformerEncoder(nn.Module):
     """
 
     def __init__(
-        self,
-        n_layers=2,
-        n_heads=2,
-        k_interests=5,
-        hidden_size=64,
-        seq_len=50,
-        inner_size=256,
-        hidden_dropout_prob=0.5,
-        attn_dropout_prob=0.5,
-        hidden_act="gelu",
-        layer_norm_eps=1e-12,
+            self,
+            n_layers=2,
+            n_heads=2,
+            k_interests=5,
+            hidden_size=64,
+            seq_len=50,
+            inner_size=256,
+            hidden_dropout_prob=0.5,
+            attn_dropout_prob=0.5,
+            hidden_act="gelu",
+            layer_norm_eps=1e-12,
     ):
         super(LightTransformerEncoder, self).__init__()
         layer = LightTransformerLayer(
@@ -902,14 +902,14 @@ class ContextSeqEmbAbstractLayer(nn.Module):
                     self.token_seq_field_names[type].append(field_name)
                     self.token_seq_field_dims[type].append(self.dataset.num(field_name))
                 elif (
-                    self.dataset.field2type[field_name] == FeatureType.FLOAT
-                    and field_name in self.dataset.config["numerical_features"]
+                        self.dataset.field2type[field_name] == FeatureType.FLOAT
+                        and field_name in self.dataset.config["numerical_features"]
                 ):
                     self.float_field_names[type].append(field_name)
                     self.float_field_dims[type].append(self.dataset.num(field_name))
                 elif (
-                    self.dataset.field2type[field_name] == FeatureType.FLOAT_SEQ
-                    and field_name in self.dataset.config["numerical_features"]
+                        self.dataset.field2type[field_name] == FeatureType.FLOAT_SEQ
+                        and field_name in self.dataset.config["numerical_features"]
                 ):
                     self.float_seq_field_names[type].append(field_name)
                     self.float_seq_field_dims[type].append(self.dataset.num(field_name))
@@ -1047,13 +1047,13 @@ class ContextSeqEmbAbstractLayer(nn.Module):
         else:
             return torch.cat(fields_result, dim=-2)
 
-    def embed_token_seq_fields(self, token_seq_fields, type):
+    def embed_token_seq_fields(self, token_seq_fields, data_type, item_idx):
         """Get the embedding of token_seq fields.
 
         Args:
             token_seq_fields(torch.Tensor): input, [batch_size, max_item_length, seq_len]`
-            type(str): user or item
-            mode(str): mean/max/sum
+            data_type(str): user or item
+            item_idx(torch.Tensor): interaction['item_id_list']
 
         Returns:
             torch.Tensor: result [batch_size, max_item_length, num_token_seq_field, embed_dim]
@@ -1061,7 +1061,7 @@ class ContextSeqEmbAbstractLayer(nn.Module):
         """
         fields_result = []
         for i, token_seq_field in enumerate(token_seq_fields):
-            embedding_table = self.token_seq_embedding_table[type][i]
+            embedding_table = self.token_seq_embedding_table[data_type][i]
             mask = token_seq_field != 0  # [batch_size, max_item_length, seq_len]
             mask = mask.float()
             value_cnt = torch.sum(
@@ -1135,7 +1135,7 @@ class ContextSeqEmbAbstractLayer(nn.Module):
             if len(float_fields) > 0:
                 float_fields = torch.cat(
                     float_fields, dim=-2
-                )  #  [batch_size, max_item_length, num_float_field, embed_dim]
+                )  # [batch_size, max_item_length, num_float_field, embed_dim]
             else:
                 float_fields = None
             float_fields_embedding[type] = self.embed_float_fields(float_fields, type)
@@ -1182,7 +1182,7 @@ class ContextSeqEmbAbstractLayer(nn.Module):
                 token_seq_fields.append(feature)
             # [batch_size, max_item_length, num_token_seq_field, embed_dim] or None
             token_seq_fields_embedding[type] = self.embed_token_seq_fields(
-                token_seq_fields, type
+                token_seq_fields, type, item_idx
             )
 
             if token_fields_embedding[type] is None:
@@ -1241,7 +1241,7 @@ class FeatureSeqEmbLayer(ContextSeqEmbAbstractLayer):
     selected features."""
 
     def __init__(
-        self, dataset, embedding_size, selected_features, pooling_mode, device
+            self, dataset, embedding_size, selected_features, pooling_mode, device
     ):
         super(FeatureSeqEmbLayer, self).__init__()
 
@@ -1261,6 +1261,35 @@ class FeatureSeqEmbLayer(ContextSeqEmbAbstractLayer):
             raise AssertionError("Make sure 'pooling_mode' in ['mean', 'max', 'sum']!")
         self.get_fields_name_dim()
         self.get_embedding()
+
+
+class ZibertFeatSeqEmbLayer(FeatureSeqEmbLayer):
+
+    def embed_token_seq_fields(self, token_seq_fields, data_type, item_idx):
+        """Get the embedding of token_seq fields.
+
+        Args:
+            token_seq_fields(torch.Tensor): input, [batch_size, max_item_length, seq_len]`
+            data_type(str): user or item
+            item_idx(torch.Tensor): interaction['item_id_list']
+
+        Returns:
+            torch.Tensor: result [batch_size, max_item_length, num_token_seq_field, embed_dim]
+
+        """
+        fields_result = []
+        for i, token_seq_field in enumerate(token_seq_fields):
+            field_name = self.token_seq_field_names[data_type][i]
+            batch_size, max_item_length, _ = list(token_seq_field.shape)
+            result = self.dataset.zibert_embeddings[field_name][item_idx].unsqueeze(2)
+            fields_result.append(result)
+
+        if len(fields_result) == 0:
+            return None
+        else:
+            return torch.cat(
+                fields_result, dim=-2
+            )  # [batch_size, max_item_length, num_token_seq_field, embed_dim]
 
 
 class CNNLayers(nn.Module):
@@ -1384,14 +1413,14 @@ class FMFirstOrderLinear(nn.Module):
                 self.token_seq_field_names.append(field_name)
                 self.token_seq_field_dims.append(dataset.num(field_name))
             elif (
-                dataset.field2type[field_name] == FeatureType.FLOAT
-                and field_name in self.numerical_features
+                    dataset.field2type[field_name] == FeatureType.FLOAT
+                    and field_name in self.numerical_features
             ):
                 self.float_field_names.append(field_name)
                 self.float_field_dims.append(dataset.num(field_name))
             elif (
-                dataset.field2type[field_name] == FeatureType.FLOAT_SEQ
-                and field_name in self.numerical_features
+                    dataset.field2type[field_name] == FeatureType.FLOAT_SEQ
+                    and field_name in self.numerical_features
             ):
                 self.float_seq_field_names.append(field_name)
                 self.float_seq_field_dims.append(dataset.num(field_name))
@@ -1474,7 +1503,7 @@ class FMFirstOrderLinear(nn.Module):
             )  # [batch_size, seq_len, embed_dim]
             if mode == "max":
                 masked_float_seq_embedding = (
-                    float_seq_embedding - (1 - mask) * 1e9
+                        float_seq_embedding - (1 - mask) * 1e9
                 )  # [batch_size, seq_len, embed_dim]
                 result = torch.max(
                     masked_float_seq_embedding, dim=1, keepdim=True
@@ -1607,7 +1636,7 @@ class FMFirstOrderLinear(nn.Module):
             total_fields_embedding.append(token_seq_fields_embedding)
 
         return (
-            torch.sum(torch.cat(total_fields_embedding, dim=1), dim=1) + self.bias
+                torch.sum(torch.cat(total_fields_embedding, dim=1), dim=1) + self.bias
         )  # [batch_size, output_dim]
 
 

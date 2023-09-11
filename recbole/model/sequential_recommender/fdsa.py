@@ -20,7 +20,7 @@ from recbole.model.abstract_recommender import SequentialRecommender
 from recbole.model.layers import (
     TransformerEncoder,
     FeatureSeqEmbLayer,
-    VanillaAttention,
+    VanillaAttention, ZibertFeatSeqEmbLayer,
 )
 from recbole.model.loss import BPRLoss
 
@@ -61,7 +61,8 @@ class FDSA(SequentialRecommender):
         )
         self.position_embedding = nn.Embedding(self.max_seq_length, self.hidden_size)
 
-        self.feature_embed_layer = FeatureSeqEmbLayer(
+        SeqEmbLayerClass = ZibertFeatSeqEmbLayer if config['zibert_embedding'] else FeatureSeqEmbLayer
+        self.feature_embed_layer = SeqEmbLayerClass(
             dataset,
             self.hidden_size,
             self.selected_features,
