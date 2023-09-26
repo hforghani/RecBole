@@ -180,7 +180,7 @@ class Dataset(torch.utils.data.Dataset):
         rclone_config = '[models]\ntype = s3\nprovider = Ceph\nenv_auth = false\nv2_auth = true \n access_key_id = ' \
                         'da-dev-readonly-88258e0161001fae \n secret_access_key = 1f934a5536478621fe750ba73895e044 \n endpoint = ' \
                         'https://cmn-prod-rgw.kp0.mci.dev/'
-        model = ZIBERT(rclone_config, model_finetune_method='simcse-sup-q2d', cuda=True)
+        model = ZIBERT(rclone_config, model_finetune_method='simcse-sup-q2d', cuda=self.config['use_gpu'])
         # self.zibert_embeddings: dict of field names to their Zibert embedding vectors.
         # Each vector is a tensor of size items_num * 256. Thir i'th row of the vector is the embedding of the item
         # specified by item_id "i".
@@ -210,7 +210,6 @@ class Dataset(torch.utils.data.Dataset):
             )
             torch.save(vec, file)
 
-
     def load_or_calc_zibert(self):
         self.zibert_embeddings = {}
         for field_name, ftype in self.field2type.items():
@@ -219,8 +218,11 @@ class Dataset(torch.utils.data.Dataset):
                         self.config["checkpoint_dir"], f'{self.config["dataset"]}-{self.__class__.__name__}-zibert-{field_name}.pt'
                     )
                 if os.path.exists(zibert_file):
+                    self.logger.debug('saved embedding found : %s', zibert_file)
                     self.zibert_embeddings[field_name] = torch.load(zibert_file)
                     self.logger.debug('device of self.zibert_embeddings[field_name] = %s', self.zibert_embeddings[field_name].get_device())
+                else:
+                    self.logger.debug('no embedding found in path : %s', zibert_file)
         if not self.zibert_embeddings:
             self._embed_by_zibert()
 
@@ -1880,9 +1882,12 @@ class Dataset(torch.utils.data.Dataset):
         )
         zibert_embeddings = None
         if hasattr(self, 'zibert_embeddings'):
+            self.logger.debug('saving zibert embedding ...')
             zibert_embeddings = self.zibert_embeddings
             self._save_zibert(zibert_embeddings)
             self.zibert_embeddings = None
+        else:
+            self.logger.debug('no zibert embedding to save')
 
         with open(file, "wb") as f:
             pickle.dump(self, f)
